@@ -1,0 +1,3 @@
+C:/Users/techn/OneDrive/Escritorio/Librarium/cmake-build-debug/CMakeFiles/Librarium.dir
+C:/Users/techn/OneDrive/Escritorio/Librarium/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/techn/OneDrive/Escritorio/Librarium/cmake-build-debug/CMakeFiles/rebuild_cache.dir
