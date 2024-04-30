@@ -1,35 +1,52 @@
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <unordered_map>
-#include <limits>
+#include <algorithm>
 
 using namespace std;
 
-// DefiniciÃ³n de la estructura del libro
+// Definición de la estructura del libro
 struct Libro {
     string titulo;
     string autor;
     string genero;
     string ISBN;
-    // Constructor
-    Libro(string tit, string aut, string gen, string isbn) : titulo(tit), autor(aut), genero(gen), ISBN(isbn) {}
+
+    // Método para serializar un libro y escribirlo en un archivo
+    void serializar(ofstream& archivo) const {
+        archivo << titulo << endl;
+        archivo << autor << endl;
+        archivo << genero << endl;
+        archivo << ISBN << endl;
+    }
+
+    // Método para deserializar un libro leyéndolo desde un archivo
+    void deserializar(ifstream& archivo) {
+        getline(archivo, titulo);
+        getline(archivo, autor);
+        getline(archivo, genero);
+        getline(archivo, ISBN);
+    }
 };
 
-// Nodo para el Ã¡rbol binario de bÃºsqueda
+// Nodo para el árbol binario de búsqueda
 struct NodoArbol {
     Libro libro;
     NodoArbol* izq;
     NodoArbol* der;
+
     // Constructor
     NodoArbol(Libro lib) : libro(lib), izq(nullptr), der(nullptr) {}
 };
 
-// Clase para el Ã¡rbol binario de bÃºsqueda
+// Clase para el árbol binario de búsqueda
 class ArbolBinario {
 private:
     NodoArbol* raiz;
+    ofstream archivoSalida; // Mantener el archivo abierto para escribir
 
-    // FunciÃ³n privada para insertar un libro en el Ã¡rbol
+    // Función privada para insertar un libro en el árbol
     NodoArbol* insertar(NodoArbol* nodo, Libro libro) {
         if (nodo == nullptr) {
             return new NodoArbol(libro);
@@ -42,7 +59,7 @@ private:
         return nodo;
     }
 
-    // FunciÃ³n privada para buscar un libro por tÃ­tulo
+    // Función privada para buscar un libro por título
     NodoArbol* buscarPorTitulo(NodoArbol* nodo, string titulo) {
         if (nodo == nullptr || nodo->libro.titulo == titulo) {
             return nodo;
@@ -53,27 +70,29 @@ private:
         return buscarPorTitulo(nodo->der, titulo);
     }
 
-    // FunciÃ³n privada para buscar un libro por autor
+    // Función privada para buscar un libro por autor
     NodoArbol* buscarPorAutor(NodoArbol* nodo, string autor) {
         if (nodo == nullptr || nodo->libro.autor == autor) {
             return nodo;
         }
-        NodoArbol* encontradoIzq = buscarPorAutor(nodo->izq, autor);
-        NodoArbol* encontradoDer = buscarPorAutor(nodo->der, autor);
-        return (encontradoIzq != nullptr) ? encontradoIzq : encontradoDer;
+        if (autor < nodo->libro.autor) {
+            return buscarPorAutor(nodo->izq, autor);
+        }
+        return buscarPorAutor(nodo->der, autor);
     }
 
-    // FunciÃ³n privada para buscar un libro por gÃ©nero
+    // Función privada para buscar un libro por género
     NodoArbol* buscarPorGenero(NodoArbol* nodo, string genero) {
         if (nodo == nullptr || nodo->libro.genero == genero) {
             return nodo;
         }
-        NodoArbol* encontradoIzq = buscarPorGenero(nodo->izq, genero);
-        NodoArbol* encontradoDer = buscarPorGenero(nodo->der, genero);
-        return (encontradoIzq != nullptr) ? encontradoIzq : encontradoDer;
+        if (genero < nodo->libro.genero) {
+            return buscarPorGenero(nodo->izq, genero);
+        }
+        return buscarPorGenero(nodo->der, genero);
     }
 
-    // FunciÃ³n privada para buscar un libro por ISBN
+    // Función privada para buscar un libro por ISBN
     NodoArbol* buscarPorISBN(NodoArbol* nodo, string ISBN) {
         if (nodo == nullptr || nodo->libro.ISBN == ISBN) {
             return nodo;
@@ -86,49 +105,68 @@ private:
 
 public:
     // Constructor
-    ArbolBinario() : raiz(nullptr) {}
-
-    // MÃ©todo pÃºblico para insertar un libro en el Ã¡rbol
-    void insertarLibro(Libro libro) {
-        raiz = insertar(raiz, libro);
+    ArbolBinario() : raiz(nullptr) {
+        // Abrir el archivo para escribir
+        archivoSalida.open("libros.txt", ios::app);
+        if (!archivoSalida.is_open()) {
+            cerr << "Error al abrir el archivo." << endl;
+        }
     }
 
-    // MÃ©todo pÃºblico para buscar un libro por tÃ­tulo
+    // Destructor
+    ~ArbolBinario() {
+        // Cerrar el archivo al destruir el objeto
+        archivoSalida.close();
+    }
+
+    // Método público para insertar un libro en el árbol
+    void insertarLibro(Libro libro) {
+        raiz = insertar(raiz, libro);
+
+        // Serializar el libro y guardarlo en el archivo
+        if (archivoSalida.is_open()) {
+            libro.serializar(archivoSalida);
+        } else {
+            cerr << "Error al escribir en el archivo." << endl;
+        }
+    }
+
+    // Método público para buscar un libro por título
     NodoArbol* buscarLibroPorTitulo(string titulo) {
         return buscarPorTitulo(raiz, titulo);
     }
 
-    // MÃ©todo pÃºblico para buscar un libro por autor
+    // Método público para buscar un libro por autor
     NodoArbol* buscarLibroPorAutor(string autor) {
         return buscarPorAutor(raiz, autor);
     }
 
-    // MÃ©todo pÃºblico para buscar un libro por gÃ©nero
+    // Método público para buscar un libro por género
     NodoArbol* buscarLibroPorGenero(string genero) {
         return buscarPorGenero(raiz, genero);
     }
 
-    // MÃ©todo pÃºblico para buscar un libro por ISBN
+    // Método público para buscar un libro por ISBN
     NodoArbol* buscarLibroPorISBN(string ISBN) {
         return buscarPorISBN(raiz, ISBN);
     }
 };
 
-// Clase para el sistema de inicio de sesiÃ³n
+// Clase para el sistema de inicio de sesión
 class SistemaLogin {
 private:
-    unordered_map<string, string> usuarios; // Almacenamiento de usuarios y contraseÃ±as
+    unordered_map<string, string> usuarios; // Almacenamiento de usuarios y contraseñas
     bool sesionIniciada;
 
 public:
     // Constructor
     SistemaLogin() : sesionIniciada(false) {
-        // InicializaciÃ³n de usuarios (puedes aÃ±adir mÃ¡s si deseas)
+        // Inicialización de usuarios (puedes añadir más si deseas)
         usuarios["admin"] = "admin";
         usuarios["kalid"] = "abc123";
     }
 
-    // MÃ©todo para verificar las credenciales del usuario
+    // Método para verificar las credenciales del usuario
     bool verificarCredenciales(string usuario, string contrasena) {
         if (usuarios.find(usuario) != usuarios.end() && usuarios[usuario] == contrasena) {
             sesionIniciada = true;
@@ -137,42 +175,79 @@ public:
         return false;
     }
 
-    // MÃ©todo para verificar si se ha iniciado sesiÃ³n
+    // Método para verificar si se ha iniciado sesión
     bool sesionActiva() {
         return sesionIniciada;
     }
 };
 
 int main() {
-    // InicializaciÃ³n del Ã¡rbol binario
+    // Inicialización del árbol binario
     ArbolBinario arbolLibros;
 
-    // InicializaciÃ³n del sistema de inicio de sesiÃ³n
+    // Inicialización del sistema de inicio de sesión
     SistemaLogin sistemaLogin;
 
+    // Cargar libros desde el archivo al iniciar el programa
+    ifstream archivoEntrada("libros.txt");
+    if (archivoEntrada.is_open()) {
+        while (!archivoEntrada.eof()) {
+            Libro libro;
+            libro.deserializar(archivoEntrada);
+            if (!libro.titulo.empty()) {
+                arbolLibros.insertarLibro(libro);
+            }
+        }
+        archivoEntrada.close(); // Cerrar el archivo después de leerlo
+    } else {
+        cerr << "No se encontró el archivo de libros." << endl;
+    }
+
+    string opcionStr;
     int opcion;
     string usuario, contrasena;
 
     do {
-        cout << "============ LIBRARIUM ============" << endl;
-        cout << "1. Iniciar sesion" << endl;
+        cout << "###########################################################################" << endl;
+        cout << "# ____      ____  ____  ____   ___      ___   _____      ______    _____  #" << endl;
+        cout << "#|_  _|    |_  _||_   ||   _|.'   `.  .'   `.|_   _|   .' ____ \\  / ___ `.#" << endl;
+        cout << "#  \\ \\  /\\  / /    | |__| | /  .-.  \\/  .-.  \\ | |     | (___ \\_||_/___) |#" << endl;
+        cout << "#   \\ \\/  \\/ /     |  __  | | |   | || |   | | | |   _  _.____`.   /  __.'#" << endl;
+        cout << "#    \\  /\\  /     _| |  | |_\\  `-'  /\\  `-'  /_| |__/ || \\____) |  |_|    #" << endl;
+        cout << "#     \\/  \\/     |____||____|`.___.'  `.___.'|________| \\______.'  (_)    #" << endl;
+        cout << "###########################################################################" << endl;
+        cout << "" << endl;
+        cout << "1. Iniciar sesion (ADMIN)" << endl;
         cout << "2. Buscar libro por titulo" << endl;
         cout << "3. Buscar libro por autor" << endl;
         cout << "4. Buscar libro por genero" << endl;
         cout << "5. Buscar libro por ISBN" << endl;
-        if (sistemaLogin.sesionActiva()) {
-            cout << "6. Agregar libro" << endl;
-            cout << "7. Cerrar sesion" << endl;
-        } else {
-            cout << "6. Salir" << endl;
-        }
-        cout << "============ v. 1.0.4 ============" << endl;
+        cout << "6. Agregar libro" << endl;
+        cout << "7. Salir" << endl;
+        cout << "============ v. 1.0.3 ============" << endl;
         cout << "Ingrese su opcion: ";
-        cin >> opcion;
+        getline(cin, opcionStr);
 
-        // Limpiar el bÃºfer despuÃ©s de leer el valor de opcion
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        // Convertir la entrada a minúsculas para manejar entradas mixtas (mayúsculas/minúsculas)
+        transform(opcionStr.begin(), opcionStr.end(), opcionStr.begin(), ::tolower);
+
+        if (opcionStr == "1" || opcionStr == "iniciar sesion") {
+            opcion = 1;
+        } else if (opcionStr == "2" || opcionStr == "buscar libro por titulo") {
+            opcion = 2;
+        } else if (opcionStr == "3" || opcionStr == "buscar libro por autor") {
+            opcion = 3;
+        } else if (opcionStr == "4" || opcionStr == "buscar libro por genero") {
+            opcion = 4;
+        } else if (opcionStr == "5" || opcionStr == "buscar libro por isbn") {
+            opcion = 5;
+        } else if (opcionStr == "6" || opcionStr == "agregar libro") {
+            opcion = 6;
+        } else if (opcionStr == "7" || opcionStr == "salir") {
+            opcion = 7;
+        } else {
+            opcion = 0; // Opción inválida
+        }
 
         switch (opcion) {
             case 1:
@@ -181,107 +256,116 @@ int main() {
                 cout << "Ingrese su contrasena: ";
                 getline(cin, contrasena);
                 if (sistemaLogin.verificarCredenciales(usuario, contrasena)) {
-                    cout << "Inicio de sesiÃ³n exitoso. Ahora puedes agregar y buscar libros." << endl;
+                    cout << "Inicio de sesión exitoso. Ahora puedes buscar y agregar libros." << endl;
                 } else {
                     cout << "Credenciales incorrectas. Intente de nuevo." << endl;
                 }
                 break;
             case 2:
-            {
-                string tituloBuscar;
-                cout << "Ingrese el tÃ­tulo del libro a buscar: ";
-                getline(cin, tituloBuscar);
-                NodoArbol* resultado = arbolLibros.buscarLibroPorTitulo(tituloBuscar);
-                if (resultado != nullptr) {
-                    cout << "Libro encontrado:" << endl;
-                    cout << "TÃ­tulo: " << resultado->libro.titulo << endl;
-                    cout << "Autor: " << resultado->libro.autor << endl;
-                    cout << "GÃ©nero: " << resultado->libro.genero << endl;
-                    cout << "ISBN: " << resultado->libro.ISBN << endl;
-                } else {
-                    cout << "Libro no encontrado." << endl;
-                }
-                break;
-            }
-            case 3:
-            {
-                string autorBuscar;
-                cout << "Ingrese el autor del libro a buscar: ";
-                getline(cin, autorBuscar);
-                NodoArbol* resultado = arbolLibros.buscarLibroPorAutor(autorBuscar);
-                if (resultado != nullptr) {
-                    cout << "Libro encontrado:" << endl;
-                    cout << "TÃ­tulo: " << resultado->libro.titulo << endl;
-                    cout << "Autor: " << resultado->libro.autor << endl;
-                    cout << "GÃ©nero: " << resultado->libro.genero << endl;
-                    cout << "ISBN: " << resultado->libro.ISBN << endl;
-                } else {
-                    cout << "Libro no encontrado." << endl;
-                }
-                break;
-            }
-            case 4:
-            {
-                string generoBuscar;
-                cout << "Ingrese el gÃ©nero del libro a buscar: ";
-                getline(cin, generoBuscar);
-                NodoArbol* resultado = arbolLibros.buscarLibroPorGenero(generoBuscar);
-                if (resultado != nullptr) {
-                    cout << "Libro encontrado:" << endl;
-                    cout << "TÃ­tulo: " << resultado->libro.titulo << endl;
-                    cout << "Autor: " << resultado->libro.autor << endl;
-                    cout << "GÃ©nero: " << resultado->libro.genero << endl;
-                    cout << "ISBN: " << resultado->libro.ISBN << endl;
-                } else {
-                    cout << "Libro no encontrado." << endl;
-                }
-                break;
-            }
-            case 5:
-            {
-                string ISBNBuscar;
-                cout << "Ingrese el ISBN del libro a buscar: ";
-                getline(cin, ISBNBuscar);
-                NodoArbol* resultado = arbolLibros.buscarLibroPorISBN(ISBNBuscar);
-                if (resultado != nullptr) {
-                    cout << "Libro encontrado:" << endl;
-                    cout << "TÃ­tulo: " << resultado->libro.titulo << endl;
-                    cout << "Autor: " << resultado->libro.autor << endl;
-                    cout << "GÃ©nero: " << resultado->libro.genero << endl;
-                    cout << "ISBN: " << resultado->libro.ISBN << endl;
-                } else {
-                    cout << "Libro no encontrado." << endl;
-                }
-                break;
-            }
-            case 6:
-            {
                 if (sistemaLogin.sesionActiva()) {
-                    string titulo, autor, genero, ISBN;
-                    cout << "Ingrese el tÃ­tulo del libro: ";
+                    string titulo;
+                    cout << "Ingrese el titulo del libro a buscar: ";
                     getline(cin, titulo);
-                    cout << "Ingrese el autor del libro: ";
+                    NodoArbol* libroEncontrado = arbolLibros.buscarLibroPorTitulo(titulo);
+                    if (libroEncontrado != nullptr) {
+                        cout << "Libro encontrado:" << endl;
+                        cout << "Título: " << libroEncontrado->libro.titulo << endl;
+                        cout << "Autor: " << libroEncontrado->libro.autor << endl;
+                        cout << "Género: " << libroEncontrado->libro.genero << endl;
+                        cout << "ISBN: " << libroEncontrado->libro.ISBN << endl;
+                    } else {
+                        cout << "Libro no encontrado." << endl;
+                    }
+                } else {
+                    cout << "Debe iniciar sesión para buscar un libro." << endl;
+                }
+                break;
+            case 3:
+                if (sistemaLogin.sesionActiva()) {
+                    string autor;
+                    cout << "Ingrese el autor del libro a buscar: ";
                     getline(cin, autor);
-                    cout << "Ingrese el gÃ©nero del libro: ";
+                    NodoArbol* libroEncontrado = arbolLibros.buscarLibroPorAutor(autor);
+                    if (libroEncontrado != nullptr) {
+                        cout << "Libro encontrado:" << endl;
+                        cout << "Título: " << libroEncontrado->libro.titulo << endl;
+                        cout << "Autor: " << libroEncontrado->libro.autor << endl;
+                        cout << "Género: " << libroEncontrado->libro.genero << endl;
+                        cout << "ISBN: " << libroEncontrado->libro.ISBN << endl;
+                    } else {
+                        cout << "Libro no encontrado." << endl;
+                    }
+                } else {
+                    cout << "Debe iniciar sesión para buscar un libro." << endl;
+                }
+                break;
+            case 4:
+                if (sistemaLogin.sesionActiva()) {
+                    string genero;
+                    cout << "Ingrese el genero del libro a buscar: ";
                     getline(cin, genero);
-                    cout << "Ingrese el ISBN del libro: ";
+                    NodoArbol* libroEncontrado = arbolLibros.buscarLibroPorGenero(genero);
+                    if (libroEncontrado != nullptr) {
+                        cout << "Libro encontrado:" << endl;
+                        cout << "Título: " << libroEncontrado->libro.titulo << endl;
+                        cout << "Autor: " << libroEncontrado->libro.autor << endl;
+                        cout << "Género: " << libroEncontrado->libro.genero << endl;
+                        cout << "ISBN: " << libroEncontrado->libro.ISBN << endl;
+                    } else {
+                        cout << "Libro no encontrado." << endl;
+                    }
+                } else {
+                    cout << "Debe iniciar sesión para buscar un libro." << endl;
+                }
+                break;
+            case 5:
+                if (sistemaLogin.sesionActiva()) {
+                    string ISBN;
+                    cout << "Ingrese el ISBN del libro a buscar: ";
                     getline(cin, ISBN);
-                    Libro nuevoLibro(titulo, autor, genero, ISBN);
+                    NodoArbol* libroEncontrado = arbolLibros.buscarLibroPorISBN(ISBN);
+                    if (libroEncontrado != nullptr) {
+                        cout << "Libro encontrado:" << endl;
+                        cout << "Título: " << libroEncontrado->libro.titulo << endl;
+                        cout << "Autor: " << libroEncontrado->libro.autor << endl;
+                        cout << "Género: " << libroEncontrado->libro.genero << endl;
+                        cout << "ISBN: " << libroEncontrado->libro.ISBN << endl;
+                    } else {
+                        cout << "Libro no encontrado." << endl;
+                    }
+                } else {
+                    cout << "Debe iniciar sesión para buscar un libro." << endl;
+                }
+                break;
+            case 6:
+                if (sistemaLogin.sesionActiva()) {
+                    // Aquí puedes implementar la lógica para agregar un libro
+                    Libro nuevoLibro;
+                    cout << "Ingrese el titulo del libro: ";
+                    getline(cin, nuevoLibro.titulo);
+                    cout << "Ingrese el autor del libro: ";
+                    getline(cin, nuevoLibro.autor);
+                    cout << "Ingrese el genero del libro: ";
+                    getline(cin, nuevoLibro.genero);
+                    cout << "Ingrese el ISBN del libro: ";
+                    getline(cin, nuevoLibro.ISBN);
                     arbolLibros.insertarLibro(nuevoLibro);
                     cout << "Libro agregado exitosamente." << endl;
                 } else {
-                    cout << "Debe iniciar sesiÃ³n para acceder a esta opciÃ³n." << endl;
+                    cout << "Debe iniciar sesión para agregar un libro." << endl;
                 }
                 break;
-            }
             case 7:
-                cout << "Cerrando sesion..." << endl;
-                sistemaLogin = SistemaLogin(); // Reiniciamos el sistema de login
+                cout << "Saliendo del programa..." << endl;
                 break;
             default:
-                cout << "Opcion no valida. Por favor, ingrese una opciÃ³n valida." << endl;
+                cout << "Opcion no valida. Por favor, ingrese una opción valida." << endl;
         }
     } while (opcion != 7);
 
+    cout << "Presione Enter para salir...";
+    cin.get(); // Espera a que el usuario presione Enter antes de salir
+
     return 0;
 }
+
